@@ -1,0 +1,1 @@
+tsc & browserify js/main.js > %GOPATH%/src/github.com/user/gobet/assets/scripts/bundle.js -d
