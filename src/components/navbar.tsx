@@ -51,12 +51,10 @@ export class Navbar extends React.Component<{}, {}> {
                     }}>
             <div className="container-fluid">
                 <div className="navbar-header">
-                    <a className="navbar-brand">Gobet</a>
+                    <a className="navbar-brand" style={{color:'#fff'}} >Gobet</a>
                 </div>
                 { sportName() }
             </div>
         </nav>;
     }
-
-
 }
