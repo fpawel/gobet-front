@@ -4,13 +4,11 @@
   "description": "",
   "main": "main.js",
   "dependencies": {
-    "@types/react-virtualized": "^9.7.2",
     "mobx": "^3.1.16",
     "mobx-react": "^4.2.1",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
-    "react-virtualized": "^9.8.0",
-    "typescript": "^2.3.4"
+    "react-virtualized": "^9.8.0"    
   },
   "devDependencies": {
     "@types/history": "^4.6.0",
@@ -21,8 +19,7 @@
     "browserify-css": "^0.10.1",
     "mobx-react-devtools": "^4.2.15",
     "mobx-router": "0.0.7",
-    "react-virtualized": "^9.8.0",
-    "tslint": "^5.4.3"
+    "react-virtualized": "^9.8.0"
   },
   "author": "",
   "license": "ISC"

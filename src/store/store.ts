@@ -4,8 +4,7 @@ import {computed, observable, action } from "mobx";
 import {ApiNgData} from "../data/aping";
 import {FootballData} from "../data/football";
 import {ReconnectingWebSocket} from "../utils/reconnecting-websocket";
-import {parseLocationHash, getSportID} from "../data/route";
-import {webSocketCloseCodeToString} from "../utils/utils";
+import {parseLocationHash, getSportID, getEventID} from "../data/route";
 
 const webSocketURL = () => {
     return `${document.location.protocol.replace("http", "ws")}//${document.location.host}/d`;
@@ -27,6 +26,9 @@ class Store {
 
     @observable hasSportEvents  = new Set<number>();
     @observable events  = new Map<number, ApiNgData.Event>();
+
+    @observable markets  = new Map<number, any>();
+
     @observable football: FootballData.Game[] = [];
     @observable route  = parseLocationHash(window.location.hash);    
     @observable
@@ -60,18 +62,11 @@ class Store {
     }
 
     readonly setupWebsocket = () => {
-        this.ws.onconnecting = () => console.log("connecting websocket...");
-
-        this.ws.onerror = (event) => {
-            console.error("websocket error ocured");
-        };
         this.ws.onmessage = (event) => {
             this.handleWebData(JSON.parse(event.data));
         };
 
         this.ws.onclose = (event) => {
-            const s = webSocketCloseCodeToString(event.code);
-            console.error("websocket closed: ", s);
             this.Message = {
                 title: 'Нет связи',
                 type: 'ConnectionError',
@@ -80,7 +75,6 @@ class Store {
         };
 
         this.ws.onopen = (event) => {
-            console.log("websocket opened");
             if (this.Message && this.Message.type === 'ConnectionError') {
                 this.Message = null;
             }
@@ -92,8 +86,11 @@ class Store {
     readonly initializeStore = () => {
         this.ws.sendJSON({ListEventTypes: {}});
         this.ws.sendJSON({SubscribeFootball: this.route.type === 'Football'});
-        if (this.route.type === 'Sport' || this.route.type === 'Event') {
+        if (this.route.type === 'Sport') {
             this.ensureEventTypeEvents(this.route.sportID);
+        }
+        if (this.route.type === 'Event') {
+            this.ensureEventMarkets(this.route.eventID);
         }
 
     }
@@ -141,7 +138,6 @@ class Store {
 
         console.error('Unknown data from server:', x);
 
-        throw `Unknown data from server`;
     }
 
 
@@ -181,6 +177,14 @@ class Store {
         }
     }
 
+    private ensureEventMarkets (eventID: number) {
+        if (!this.markets.has(eventID)) {
+            this.ws.sendJSON({
+                ListEvent: eventID,
+            });
+        }
+    }
+
     readonly handleLocationChanged = () => {
         const prevRoute = this.route;
         const prevRouteFootball = this.route.type === 'Football';
@@ -195,24 +199,29 @@ class Store {
         if (this.route === prevRoute) {
             return;
         }
-        if(this.route.type === 'Sport' ||
-            this.route.type === 'Event' ){
+        if(this.route.type === 'Sport'){
             this.ensureEventTypeEvents(this.route.sportID);
+        }
+
+        if( this.route.type === 'Event' ){
+            this.ensureEventMarkets(this.route.eventID);
         }
     }
 
     @computed public get SportOfRoute()  {
         const sportID = getSportID(this.route);
-        return this.sports.get( sportID );
+        return sportID ? this.sports.get( sportID ) : null;
+    }
+
+    @computed public get EventOfRoute()  {
+        const eventID = getEventID(this.route);
+        return eventID ? this.events.get( eventID ) : null;
     }
 
 
 }
 
 export const store = new Store();
-
-
-
 
 interface WebData {
     Football?: UpdateFootball,

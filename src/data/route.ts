@@ -9,8 +9,7 @@ export type Route =
         sportID:number
     } | 
     {
-        type : 'Event', 
-        sportID:number,
+        type : 'Event',
         eventID:number,
     } | 
     {
@@ -21,12 +20,19 @@ export const getSportID = (route : Route )  => {
     switch (route.type) {
         case 'Sport':
             return route.sportID;
-        case 'Event':
-            return route.sportID;
         case 'Football':
             return 1;
         default:
-            return 0;
+            return null;
+    }
+}
+
+export const getEventID = (route : Route )  => {
+    switch (route.type) {
+        case 'Event':
+            return route.eventID;
+        default:
+            return null;
     }
 }
 
@@ -52,14 +58,12 @@ export function parseLocationHash (lcoationHash:string) : Route {
         }
     }
     {        
-        const a = (/^#\/sport\/(\d+)\/event\/(\d+)\/?$/g).exec(lcoationHash);
-        if( a!==undefined && a!==null && a.length===3){
-            const sport_id  =  parseInt(a[1]);
-            const event_id  =  parseInt(a[2]);
-            if (sport_id!==NaN &&  event_id !== NaN) {   
+        const a = (/^#\/event\/(\d+)\/?$/g).exec(lcoationHash);
+        if( a!==undefined && a!==null && a.length===2){
+            const event_id  =  parseInt(a[1]);
+            if ( event_id !== NaN) {
                 return {
                     type : 'Event',
-                    sportID:sport_id,
                     eventID:event_id,
                 };
             }

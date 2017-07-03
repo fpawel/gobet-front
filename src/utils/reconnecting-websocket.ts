@@ -1,24 +1,3 @@
-// MIT License:
-//
-// Copyright (c) 2010-2012, Joe Walnes
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
 
 /**
  * This behaves like a WebSocket in every way, except if it fails to connect,
@@ -46,10 +25,30 @@
  */
 
 
+const webSocketCloseCodeStr = new Map<number, string>(
+    [
+        [1000, "Normal closure, meaning that the purpose for which the connection was established has been fulfilled"],
+        [1001, "An endpoint is \"going away\", such as a server going down or a browser having navigated away from a page."],
+        [1002, "An endpoint is terminating the connection due to a protocol error"],
+        [1003, "An endpoint is terminating the connection because it has received a type of data it cannot accept (e.g., an endpoint that understands only text data MAY send this if it receives a binary message)."],
+        [1004, "Reserved. The specific meaning might be defined in the future."],
+        [1005, "No status code was actually present."],
+        [1006, "The connection was closed abnormally, e.g., without sending or receiving a Close control frame"],
+        [1007, "An endpoint is terminating the connection because it has received data within a message that was not consistent with the type of the message (e.g., non-UTF-8 [http://tools.ietf.org/html/rfc3629] data within a text message)."],
+        [1008, "An endpoint is terminating the connection because it has received a message that \"violates its policy\". This reason is given either if there is no other sutible reason, or if there is a need to hide specific details about the policy."],
+        [1009, "An endpoint is terminating the connection because it has received a message that is too big for it to process."],
+        [1010, "An endpoint (client) is terminating the connection because it has expected the server to negotiate one or more extension, but the server didn't return them in the response message of the WebSocket handshake. <br /> Specifically, the extensions that are needed are: "],
+        [1011, "A server is terminating the connection because it encountered an unexpected condition that prevented it from fulfilling the request."],
+        [1015, "The connection was closed due to a failure to perform a TLS handshake (e.g., the server certificate can't be verified)."],
+    ]);
+
+const webSocketCloseCodeToString = (code:number) => {
+    const r = webSocketCloseCodeStr.get(code);
+    return r ? r : `unknown close code '${code}'`
+} ;
+
 
 export class ReconnectingWebSocket {
-    //These can be altered by calling code
-    public debug: boolean = false;
 
     //Time to wait before attempting reconnect (after close)
     public reconnectInterval: number = 1000;
@@ -126,11 +125,11 @@ export class ReconnectingWebSocket {
             this.onconnecting();
             this.reconnectAttempts = 0;
         }
-        this.log('ReconnectingWebSocket', 'attempt-connect', this.url);
+        console.log('WebSocket connecting...', this.url);
 
         var localWs = this.ws;
         var timeout = setTimeout(() => {
-            this.log('ReconnectingWebSocket', 'connection-timeout', this.url);
+            console.error('WebSocket connection timeout', this.timeoutInterval);
             this.timedOut = true;
             localWs.close();
             this.timedOut = false;
@@ -138,7 +137,7 @@ export class ReconnectingWebSocket {
 
         this.ws.onopen = (event: Event) => {
             clearTimeout(timeout);
-            this.log('ReconnectingWebSocket', 'onopen', this.url);
+            console.log('WebSocket opened', this.url);
             this.readyState = WebSocket.OPEN;
             reconnectAttempt = false;
             this.reconnectAttempts = 0;
@@ -164,17 +163,16 @@ export class ReconnectingWebSocket {
                 this.readyState = WebSocket.CLOSED;                
             } else {
                 if (!reconnectAttempt && !this.timedOut) {
-                    this.log('ReconnectingWebSocket', 'onclose', this.url);                    
+                    console.error('websocket closed: ', webSocketCloseCodeToString(event.code));
                 }
                 tryReconnect();
             }
         };
         this.ws.onmessage = (event) => {
-            this.log('ReconnectingWebSocket', 'onmessage', this.url, event.data);
             this.onmessage(event);
         };
         this.ws.onerror = (event) => {
-            this.log('ReconnectingWebSocket', 'onerror', this.url, event);
+            console.error('WebSocket error ocured:', this.url);
             this.onerror(event);
             this.close();
             tryReconnect();
@@ -187,9 +185,6 @@ export class ReconnectingWebSocket {
 
     public send(data: any) {
         if (this.ws) {
-            this.log('ReconnectingWebSocket', 'send', this.url, data);
-
-
             if (this.ws.readyState === WebSocket.OPEN) {
                 this.ws.send(data);
             } else {
@@ -202,7 +197,6 @@ export class ReconnectingWebSocket {
                     this.ws.send(data);
                 };
             }
-
 
         } else {
             throw 'INVALID_STATE_ERR : Pausing to reconnect websocket';
@@ -235,11 +229,7 @@ export class ReconnectingWebSocket {
         return false;
     }
 
-    private log(...args: any[]) {
-        if (this.debug || ReconnectingWebSocket.debugAll) {
-            console.debug.apply(console, args);
-        }
-    }
+
 }
 
 
